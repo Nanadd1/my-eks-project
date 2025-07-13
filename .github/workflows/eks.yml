@@ -1,0 +1,14 @@
+name: EKS Test Workflow
+
+on:
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Hello World
+      run: echo "GitHub Actions is working!"
