@@ -1,14 +1,46 @@
-name: EKS Test Workflow
+name: EKS Deployment Pipeline
 
 on:
-  workflow_dispatch: # Allows manual triggering
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+env:
+  CLUSTER_NAME: my-eks-cluster
+  AWS_REGION: us-east-1
 
 jobs:
-  test:
+  deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
-    - name: Hello World
-      run: echo "GitHub Actions is working!"
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_IAM_ROLE }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Install eksctl
+      run: |
+        curl -sSL "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+        sudo mv /tmp/eksctl /usr/local/bin
+
+    - name: Create EKS cluster
+      run: |
+        eksctl create cluster \
+          --name ${{ env.CLUSTER_NAME }} \
+          --region ${{ env.AWS_REGION }} \
+          --nodegroup-name workers \
+          --node-type t3.small \
+          --nodes 2 \
+          --managed
+        
+        aws eks update-kubeconfig \
+          --name ${{ env.CLUSTER_NAME }} \
+          --region ${{ env.AWS_REGION }}
